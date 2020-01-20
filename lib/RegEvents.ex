@@ -10,17 +10,19 @@ defmodule Regevents do
         
         MyXQL.query!(con, "INSERT INTO eventos (nome,data,local) VALUES (?,?,?)",[nome,data,local])
 
+        "funcionou"
+
     end
 
     def novo_artigo(json,con) do
         params = Jason.decode!(json)
         titulo = params["titulo"]
         autor = params["autor"]
-        evento =  params["evento"]
+        evento =  params["eventoID"]
         texto =  params["texto"]
 
         MyXQL.query!(con, "INSERT INTO artigos (titulo,autor,eventoID,texto) VALUES (?,?,?,?)",[titulo,autor,evento,texto])
-
+        "funcionou"
     end
 
     def ler_artigo(json,con) do
@@ -28,7 +30,7 @@ defmodule Regevents do
 
         sql = MyXQL.query!(con,"SELECT * FROM artigos WHERE id=?",[id])
         resultado = sql_tuple(sql)
-        IO.puts Jason.encode!(resultado)
+        Jason.encode!(resultado)
 
     end
 
@@ -37,14 +39,14 @@ defmodule Regevents do
 
         sql = MyXQL.query!(con,"SELECT titulo,autor FROM artigos WHERE eventoID=?",[id])
         resultado = sql_tuple(sql)
-        IO.puts Jason.encode!(resultado)
+        Jason.encode!(resultado)
 
     end
 
     def todos_eventos(_json,con) do
         sql = MyXQL.query!(con,"SELECT eventoID,nome,data, (SELECT COUNT(*) FROM artigos WHERE artigos.eventoID = eventos.eventoID) AS artigos FROM eventos")
         resultado = sql_tuple(sql)
-        IO.puts Jason.encode!(resultado)
+        Jason.encode!(resultado)
     end
 
     def sql_tuple(sql) do
@@ -58,14 +60,33 @@ defmodule Regevents do
 
 end
 
-defmodule Helloplug do
-  def init(default_opts) do
-    IO.puts "starting up Helloplug..."
-    default_opts
-  end
+defmodule Iniciar do
+    def init(default_opts) do
+        IO.puts "starting up Helloplug..."
+        default_opts
+    end
 
-  def call(conn, _opts) do
-    IO.puts "saying hello!"
-    Plug.Conn.send_resp(conn, 200, "Hello, world!<script>alert('oi')</script>")
-  end
+    def call(conn, _opts) do
+        route(conn.path_info, conn)
+    end
+
+    def route(["favicon.ico"],conn) do
+        conn |> Plug.Conn.send_resp(200, "")
+    end
+
+
+    def route(["metodo",metodo],conn) do
+        IO.puts metodo
+        {:ok, sql_con} =  MyXQL.start_link(username: "teste",password: "senha",hostname: "localhost",database: "bd_artigos")
+        json = Plug.Conn.fetch_query_params(conn).query_params["json"]
+        IO.puts json
+        resp = apply(Regevents,String.to_atom(metodo),[json,sql_con])
+        conn |>  Plug.Conn.send_resp(200, resp)
+    end
+
+  
+    def route(_etc,conn) do
+        conn |> Plug.Conn.send_resp(200, "404")
+    end
+
 end
