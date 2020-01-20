@@ -7,10 +7,12 @@ defmodule Regevents do
         data = params["data"]
         local =  params["local"]
         
-        
-        MyXQL.query!(con, "INSERT INTO eventos (nome,data,local) VALUES (?,?,?)",[nome,data,local])
-
-        "funcionou"
+        case Regevents.Guardian.decode_and_verify(params["token"]) do
+            {:ok, _} -> 
+                MyXQL.query!(con, "INSERT INTO eventos (nome,data,local) VALUES (?,?,?)",[nome,data,local])
+                "Inseriddo com sucesso"
+            {:error, _} -> "falha na autenticacao"
+        end
 
     end
 
@@ -21,8 +23,18 @@ defmodule Regevents do
         evento =  params["eventoID"]
         texto =  params["texto"]
 
-        MyXQL.query!(con, "INSERT INTO artigos (titulo,autor,eventoID,texto) VALUES (?,?,?,?)",[titulo,autor,evento,texto])
-        "funcionou"
+
+        
+
+        case Regevents.Guardian.decode_and_verify(params["token"]) do
+            {:ok, _} -> 
+                MyXQL.query!(con, "INSERT INTO artigos (titulo,autor,eventoID,texto) VALUES (?,?,?,?)",[titulo,autor,evento,texto])
+                "Inserido com sucesso"
+            {:error, _} -> "falha na autenticacao"
+        end
+
+
+        
     end
 
     def ler_artigo(json,con) do
@@ -72,6 +84,13 @@ defmodule Iniciar do
 
     def route(["favicon.ico"],conn) do
         conn |> Plug.Conn.send_resp(200, "")
+    end
+
+    def route(["token",usuario],conn) do
+        #apenas para uso no desenvolvimento, não seria o método final de aquisição de token
+
+        {:ok, token, _claims} = Regevents.Guardian.encode_and_sign(usuario)
+        conn |>  Plug.Conn.send_resp(200, token)
     end
 
 
