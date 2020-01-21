@@ -27,5 +27,3 @@ request.exs
 lib/RegEvents_curr.ex
 .gitignore
 lib/RegEvents
-request.exs
-request.exs
